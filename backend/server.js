@@ -980,6 +980,8 @@ app.post('/api/ai/threat-analyzer', auth, async (req, res) => {
   }
 });
 
+app.use('/api/telemetry', require('./routes/telemetryIngest')); app.use('/api/soc-triage', require('./routes/socTriage')); app.use('/api/firmware-cve', require('./routes/firmwareCVE')); app.use('/api/identity-analytics', require('./routes/identityAnalytics')); app.use('/api/device-adapter', require('./routes/deviceAdapter'));
+
 // ─── Socket.IO ──────────────────────────────────────────────────
 io.on('connection', (socket) => {
   console.log('SOC client connected:', socket.id);
