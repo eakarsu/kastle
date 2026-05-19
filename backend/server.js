@@ -980,6 +980,17 @@ app.post('/api/ai/threat-analyzer', auth, async (req, res) => {
   }
 });
 
+app.use('/api/telemetry', require('./routes/telemetryIngest')); app.use('/api/soc-triage', require('./routes/socTriage')); app.use('/api/firmware-cve', require('./routes/firmwareCVE')); app.use('/api/identity-analytics', require('./routes/identityAnalytics')); app.use('/api/device-adapter', require('./routes/deviceAdapter'));
+
+// Health
+app.get('/api/health', (req, res) => res.json({ ok: true, service: 'kastle-backend', ts: Date.now() }));
+
+// Custom Views — mount BEFORE any 404 handler
+app.use('/api/custom-views', require('./routes/customViews'));
+
+// 404 fallback for unknown /api/* routes
+app.use('/api', (req, res) => res.status(404).json({ error: 'Not found', path: req.originalUrl }));
+
 // ─── Socket.IO ──────────────────────────────────────────────────
 io.on('connection', (socket) => {
   console.log('SOC client connected:', socket.id);

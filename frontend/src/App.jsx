@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, useNavigate, useLocation, Navigate } from 'react-router-dom';
-import { FaTachometerAlt, FaBrain, FaSignOutAlt, FaDesktop, FaNetworkWired, FaMicrochip, FaSitemap, FaChartLine } from 'react-icons/fa';
+import { FaTachometerAlt, FaBrain, FaSignOutAlt, FaDesktop, FaNetworkWired, FaMicrochip, FaSitemap, FaChartLine, FaEye } from 'react-icons/fa';
 import { isAuthenticated, logout } from './api';
 import { modules, moduleGroups } from './modules';
 import Login from './pages/Login';
@@ -13,6 +13,7 @@ import DeviceRegistry from './pages/DeviceRegistry';
 import FirmwareManagement from './pages/FirmwareManagement';
 import NetworkTopology from './pages/NetworkTopology';
 import DeviceAnalytics from './pages/DeviceAnalytics';
+import CustomViewsPage from './pages/CustomViewsPage';
 
 function ProtectedRoute({ children }) {
   if (!isAuthenticated()) return <Navigate to="/login" replace />;
@@ -104,6 +105,13 @@ function AppLayout() {
           </Link>
         </div>
 
+        <div className="sidebar-group">
+          <div className="sidebar-group-label">Custom</div>
+          <Link to="/custom-views" className={`sidebar-link ${isActive('/custom-views') ? 'active' : ''}`}>
+            <FaEye /> Access Views
+          </Link>
+        </div>
+
         <div className="sidebar-bottom">
           <button className="sidebar-link" onClick={handleLogout}>
             <FaSignOutAlt /> Sign Out
@@ -126,6 +134,7 @@ function AppLayout() {
             {location.pathname === '/firmware' && 'Firmware Management'}
             {location.pathname === '/topology' && 'Network Topology'}
             {location.pathname === '/analytics' && 'Device Analytics'}
+            {location.pathname === '/custom-views' && 'Access Views'}
           </div>
           <div className="topbar-user">
             <span>{userName}</span>
@@ -143,6 +152,7 @@ function AppLayout() {
             <Route path="/firmware" element={<FirmwareManagement />} />
             <Route path="/topology" element={<NetworkTopology />} />
             <Route path="/analytics" element={<DeviceAnalytics />} />
+            <Route path="/custom-views" element={<CustomViewsPage />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </div>
