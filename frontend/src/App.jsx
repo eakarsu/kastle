@@ -15,6 +15,9 @@ import NetworkTopology from './pages/NetworkTopology';
 import DeviceAnalytics from './pages/DeviceAnalytics';
 import CustomViewsPage from './pages/CustomViewsPage';
 
+import CodexCustomVizFeature from './pages/CodexCustomVizFeature';
+import CodexOperationsFeature from './pages/CodexOperationsFeature';
+
 function ProtectedRoute({ children }) {
   if (!isAuthenticated()) return <Navigate to="/login" replace />;
   return children;
@@ -143,6 +146,9 @@ function AppLayout() {
         </div>
         <div className="page-content">
           <Routes>
+        <Route path="/codex/custom-viz" element={<ProtectedRoute><CodexCustomVizFeature /></ProtectedRoute>} />
+        <Route path="/codex/operations" element={<ProtectedRoute><CodexOperationsFeature /></ProtectedRoute>} />
+
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/module/:name" element={<ModulePage />} />
             <Route path="/module/:name/:id" element={<DetailPage />} />
