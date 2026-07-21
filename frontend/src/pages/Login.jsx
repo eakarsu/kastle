@@ -1,82 +1,37 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaShieldAlt } from 'react-icons/fa';
-import { login, isAuthenticated } from '../api';
+import { isAuthenticated, login } from '../api';
 
 export default function Login() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [form, setForm] = useState({ tenant: '', email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  useEffect(() => { if (isAuthenticated()) navigate('/access', { replace: true }); }, [navigate]);
 
-  if (isAuthenticated()) {
-    navigate('/dashboard', { replace: true });
-    return null;
-  }
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  async function submit(event) {
+    event.preventDefault();
     setError('');
     setLoading(true);
     try {
-      await login(email, password);
-      navigate('/dashboard');
-    } catch (err) {
-      setError(err.message);
+      await login(form.tenant, form.email, form.password);
+      navigate('/access');
+    } catch (failure) {
+      setError(failure.message);
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  const handleDemo = () => {
-    setEmail('admin@kastle.com');
-    setPassword('password123');
-  };
-
-  return (
-    <div className="login-page">
-      <div className="login-card">
-        <div className="login-brand">
-          <div className="shield"><FaShieldAlt /></div>
-          <h2>KASTLE SYSTEMS</h2>
-          <p>Security Operations Platform</p>
-        </div>
-
-        {error && <div className="login-error">{error}</div>}
-
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>Email Address</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@kastle.com"
-              required
-            />
-          </div>
-          <div className="form-group">
-            <label>Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter password"
-              required
-            />
-          </div>
-          <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
-            {loading ? 'Signing in...' : 'Sign In'}
-          </button>
-        </form>
-
-        <div className="login-demo">
-          <button type="button" className="btn btn-accent btn-full" onClick={handleDemo}>
-            Quick Demo Login
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+  return <div className="login-page"><div className="login-card">
+    <div className="login-brand"><div className="shield">K</div><h2>Kastle Access Control</h2><p>Tenant-scoped operator sign in</p></div>
+    {error && <div className="login-error" role="alert">{error}</div>}
+    <form onSubmit={submit}>
+      <div className="form-group"><label htmlFor="tenant">Tenant slug</label><input id="tenant" autoComplete="organization" value={form.tenant} onChange={(event) => setForm({ ...form, tenant: event.target.value })} required minLength={3} /></div>
+      <div className="form-group"><label htmlFor="email">Email address</label><input id="email" type="email" autoComplete="username" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} required /></div>
+      <div className="form-group"><label htmlFor="password">Password</label><input id="password" type="password" autoComplete="current-password" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} required minLength={12} /></div>
+      <button type="submit" className="btn btn-primary btn-full" disabled={loading}>{loading ? 'Signing in…' : 'Sign in'}</button>
+    </form>
+    <p className="login-help">Administrators are provisioned explicitly with <code>npm run bootstrap:admin</code>. No demo credentials are installed.</p>
+  </div></div>;
 }

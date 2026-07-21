@@ -28,6 +28,43 @@ body {
   line-height: 1.5;
 }
 
+button, input, select { font: inherit; }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.86em; overflow-wrap: anywhere; }
+.operations-shell { min-height: 100vh; background: #f4f7fa; }
+.operations-header { height: 68px; display: flex; align-items: center; gap: 12px; padding: 0 30px; background: #132235; color: white; border-bottom: 3px solid var(--accent); }
+.operations-header small { display: block; color: #aebdcc; font-size: 11px; margin-top: 2px; }
+.brand-lock { width: 38px; height: 38px; border-radius: 9px; display: grid; place-items: center; background: var(--accent); color: #132235; font-weight: 800; }
+.operator-identity { margin-left: auto; display: flex; gap: 16px; align-items: center; font-size: 13px; }
+.operator-identity button { border: 1px solid #627287; color: white; background: transparent; padding: 7px 12px; border-radius: 6px; cursor: pointer; }
+.operations-content { max-width: 1500px; margin: 0 auto; padding: 30px; }
+.hero { display: flex; justify-content: space-between; align-items: start; gap: 24px; margin-bottom: 22px; }
+.hero h1 { font-size: 30px; margin: 2px 0 6px; }
+.hero p:last-child { max-width: 760px; color: var(--text-light); }
+.eyebrow { color: var(--primary); font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .12em; }
+.banner { padding: 12px 16px; border-radius: 7px; margin: 12px 0; border: 1px solid; }
+.banner.error { background: #fff0f0; border-color: #e9a7a7; color: #8f1111; }
+.banner.success { background: #edfaf2; border-color: #93d4ac; color: #0e6b32; }
+.kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin: 20px 0; }
+.kpi-grid article { background: white; border: 1px solid var(--border); border-radius: 9px; padding: 18px; box-shadow: var(--shadow); }
+.kpi-grid span { display: block; color: var(--text-light); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+.kpi-grid strong { display: block; margin-top: 6px; font-size: 23px; }
+.allow { color: #08783c !important; }.deny { color: #b52222 !important; }
+.admin-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin: 20px 0; align-items: start; }
+.panel, .secret-panel { background: white; border: 1px solid var(--border); border-radius: 9px; padding: 20px; box-shadow: var(--shadow); }
+.panel h2, .secret-panel h2 { font-size: 17px; margin-bottom: 14px; }
+.panel label { display: block; color: var(--text-light); font-size: 12px; font-weight: 650; margin: 10px 0; }
+.panel input, .panel select { width: 100%; display: block; margin-top: 5px; border: 1px solid var(--border); border-radius: 6px; padding: 9px; background: white; }
+.inline { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.secret-panel { border-left: 5px solid #d28100; background: #fffaf0; margin: 18px 0; }
+.secret-panel p { color: var(--text-light); margin-bottom: 12px; }.secret-panel dt { font-size: 11px; text-transform: uppercase; color: var(--text-light); }.secret-panel dd { margin: 3px 0 12px; }
+.table-panel { margin: 18px 0; }.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; } th, td { padding: 10px 12px; border-bottom: 1px solid #e8ebef; text-align: left; vertical-align: top; } th { color: var(--text-light); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; background: #f8fafc; }
+.pill { display: inline-block; border-radius: 999px; padding: 3px 8px; font-size: 11px; font-weight: 750; background: #eef2f5; }.pill.allow { background: #e2f6ea; }.pill.deny { background: #fde7e7; }
+.empty { color: var(--text-light); padding: 16px 0 2px; }
+.login-help { margin-top: 20px; color: var(--text-light); font-size: 12px; line-height: 1.6; }
+@media (max-width: 1100px) { .admin-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }.kpi-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media (max-width: 650px) { .operations-header { padding: 0 14px; }.operator-identity span { display:none; }.operations-content { padding: 18px 12px; }.hero { flex-direction: column; }.admin-grid, .kpi-grid { grid-template-columns: 1fr; }.login-card { width: calc(100% - 24px); padding: 32px 24px; } }
+
 /* Layout */
 .app-layout { display: flex; min-height: 100vh; }
 

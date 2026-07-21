@@ -1,101 +1,20 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env sh
+set -eu
 
-ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
-cd "$ROOT_DIR"
+: "${NODE_ENV:=production}"
+export NODE_ENV
 
-# Load env
-export $(grep -v '^#' .env | grep -v '^$' | xargs)
+if [ -z "${CORS_ORIGINS:-}" ] && [ "$NODE_ENV" = test ]; then
+  CORS_ORIGINS="http://127.0.0.1:${FRONTEND_PORT:-5173}"
+  export CORS_ORIGINS
+fi
 
-echo "🔒 Kastle Systems Security Operations Platform"
-echo "================================================"
-
-# Aggressive cleanup — kill everything on our ports
-cleanup_ports() {
-  echo "Cleaning up ports 3000 and 4002..."
-  for port in 3000 4002; do
-    # Kill all processes on the port (SIGTERM first, then SIGKILL)
-    lsof -ti:$port 2>/dev/null | xargs kill 2>/dev/null || true
-    sleep 0.5
-    lsof -ti:$port 2>/dev/null | xargs kill -9 2>/dev/null || true
-  done
-  # Wait until ports are confirmed free
-  for port in 3000 4002; do
-    attempts=0
-    while lsof -ti:$port >/dev/null 2>&1; do
-      attempts=$((attempts + 1))
-      if [ $attempts -ge 10 ]; then
-        echo "ERROR: Port $port still in use after cleanup. Kill it manually."
-        exit 1
-      fi
-      sleep 1
-    done
-  done
-  echo "Ports are free."
-}
-
-cleanup_ports
-
-# Create database if not exists
-echo "Setting up database..."
-psql -U $(whoami) -d postgres -tc "SELECT 1 FROM pg_database WHERE datname = 'kastle'" | grep -q 1 || \
-  createdb kastle 2>/dev/null || echo "Database 'kastle' already exists"
-
-# Backend setup
-echo "Installing backend dependencies..."
-cd "$ROOT_DIR/backend"
-npm install
-
-echo "Seeding database..."
-node seed.js
-
-# Frontend setup
-echo "Installing frontend dependencies..."
-cd "$ROOT_DIR/frontend"
-npm install
-
-# Final port check before starting services
-for port in 3000 4002; do
-  if lsof -ti:$port >/dev/null 2>&1; then
-    echo "ERROR: Port $port got occupied during setup. Cleaning again..."
-    lsof -ti:$port 2>/dev/null | xargs kill -9 2>/dev/null || true
-    sleep 1
-  fi
+for name in DATABASE_URL JWT_SECRET CORS_ORIGINS; do
+  value="$(printenv "$name" || true)"
+  if [ -z "$value" ]; then echo "$name is required" >&2; exit 1; fi
 done
+if [ "${#JWT_SECRET}" -lt 32 ]; then echo "JWT_SECRET must contain at least 32 characters" >&2; exit 1; fi
+if [ "$CORS_ORIGINS" = "*" ]; then echo "CORS_ORIGINS must contain explicit origins" >&2; exit 1; fi
+if [ ! -f frontend/dist/index.html ]; then echo "frontend/dist is missing; build the release before startup" >&2; exit 1; fi
 
-# Start backend
-echo "Starting backend on port $BACKEND_PORT..."
-cd "$ROOT_DIR/backend"
-npx nodemon server.js &
-BACKEND_PID=$!
-
-# Wait for backend to be ready before starting frontend
-echo "Waiting for backend to start..."
-attempts=0
-while ! curl -s http://localhost:$BACKEND_PORT >/dev/null 2>&1; do
-  attempts=$((attempts + 1))
-  if [ $attempts -ge 15 ]; then
-    echo "WARNING: Backend may not be ready yet, starting frontend anyway..."
-    break
-  fi
-  sleep 1
-done
-
-# Start frontend
-echo "Starting frontend on port $FRONTEND_PORT..."
-cd "$ROOT_DIR/frontend"
-npx vite --host --port $FRONTEND_PORT &
-FRONTEND_PID=$!
-
-echo ""
-echo "✅ Kastle Platform Running!"
-echo "   Frontend: http://localhost:$FRONTEND_PORT"
-echo "   Backend:  http://localhost:$BACKEND_PORT"
-echo "   Login:    admin@kastle.com / password123"
-echo ""
-echo "Press Ctrl+C to stop all services"
-
-# Trap for clean shutdown
-trap "echo ''; echo 'Shutting down...'; kill $BACKEND_PID $FRONTEND_PID 2>/dev/null; exit 0" SIGINT SIGTERM
-
-wait
+exec node backend/server.js
