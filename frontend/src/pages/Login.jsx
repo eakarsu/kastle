@@ -30,6 +30,15 @@ export default function Login() {
       <div className="form-group"><label htmlFor="tenant">Tenant slug</label><input id="tenant" autoComplete="organization" value={form.tenant} onChange={(event) => setForm({ ...form, tenant: event.target.value })} required minLength={3} /></div>
       <div className="form-group"><label htmlFor="email">Email address</label><input id="email" type="email" autoComplete="username" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} required /></div>
       <div className="form-group"><label htmlFor="password">Password</label><input id="password" type="password" autoComplete="current-password" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} required minLength={12} /></div>
+      <button
+        type="button"
+        onClick={() => { setForm((current) => ({ ...current, tenant: import.meta.env.VITE_DEMO_TENANT || '', email: import.meta.env.VITE_DEMO_EMAIL || '', password: import.meta.env.VITE_DEMO_PASSWORD || '' })); }}
+        disabled={!import.meta.env.VITE_DEMO_EMAIL || !import.meta.env.VITE_DEMO_PASSWORD || !import.meta.env.VITE_DEMO_TENANT}
+        aria-label="Auto Fill Demo Credentials"
+        style={{ width: '100%', marginBottom: '12px', padding: '10px 14px', borderRadius: '8px', border: '1px solid currentColor', background: 'transparent', cursor: 'pointer' }}
+      >
+        Auto Fill Demo Credentials
+      </button>
       <button type="submit" className="btn btn-primary btn-full" disabled={loading}>{loading ? 'Signing in…' : 'Sign in'}</button>
     </form>
     <p className="login-help">Administrators are provisioned explicitly with <code>npm run bootstrap:admin</code>. No demo credentials are installed.</p>
