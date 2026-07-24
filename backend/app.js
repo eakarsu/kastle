@@ -187,6 +187,33 @@ function createApp({ pool, config }) {
     id: req.user.id, tenantId: req.user.tenant_id, email: req.user.email, fullName: req.user.full_name, role: req.user.role,
   }));
 
+  app.post('/api/runtime-ai/recommendation', userAuth, asyncRoute(async (req, res) => {
+    const prompt = text(req.body?.prompt, 'prompt', 1, 4000);
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    const model = process.env.OPENROUTER_MODEL;
+    const baseUrl = String(process.env.OPENROUTER_BASE_URL || '').replace(/\/$/, '');
+    if (!apiKey || !model || !baseUrl) throw new DomainError(503, 'AI_NOT_CONFIGURED', 'AI provider is not configured');
+    const response = await fetch(`${baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model, messages: [
+        { role: 'system', content: 'Give concise physical-access operations guidance. Never decide whether a person should be admitted and require human review for security actions.' },
+        { role: 'user', content: prompt },
+      ], max_tokens: 180 }),
+      signal: AbortSignal.timeout(45000),
+    });
+    const payload = await response.json().catch(() => ({}));
+    const content = String(payload?.choices?.[0]?.message?.content || '').trim();
+    if (!response.ok || !payload.id || !content) throw new DomainError(502, 'AI_PROVIDER_FAILURE', `OpenRouter request failed with HTTP ${response.status}`);
+    const receipt = (await pool.query(
+      `INSERT INTO security_ai_provider_receipts(tenant_id,user_id,provider,provider_request_id,model,prompt,content)
+       VALUES($1,$2,'openrouter',$3,$4,$5,$6)
+       RETURNING id,provider,provider_request_id,model,created_at`,
+      [req.user.tenant_id, req.user.id, String(payload.id), String(payload.model || model), prompt, content],
+    )).rows[0];
+    res.json({ content, receipt });
+  }));
+
   app.post('/api/access/decisions', readerAuth, asyncRoute(async (req, res) => {
     const result = await processAccessAttempt(pool, req.reader, { ...req.body, externalEventId: req.headers['idempotency-key'] || req.body?.externalEventId });
     res.status(result.idempotent ? 200 : 201).json({ ...publicAttempt(result.attempt), idempotent: result.idempotent });
