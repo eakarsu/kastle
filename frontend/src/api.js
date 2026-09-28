@@ -34,3 +34,7 @@ export async function login(tenant, email, password) {
   localStorage.setItem(TOKEN_KEY, response.token);
   return response;
 }
+
+export async function loadDemoCredentials() {
+  return api('/auth/demo-credentials');
+}

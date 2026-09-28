@@ -163,6 +163,16 @@ function createApp({ pool, config }) {
   }));
   app.use(express.json({ limit: '128kb', strict: true }));
 
+  app.get('/api/auth/demo-credentials', (req, res) => {
+    const enabled = process.env.NODE_ENV !== 'production' && process.env.ENABLE_DEMO_CREDENTIAL_AUTOFILL !== 'false';
+    const tenant = process.env.DEMO_TENANT || process.env.BOOTSTRAP_TENANT_SLUG || process.env.TENANT_ID || '';
+    const email = process.env.PROVISION_ADMIN_EMAIL || process.env.ADMIN_EMAIL || '';
+    const password = process.env.PROVISION_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || '';
+    if (!enabled || !tenant || !email || !password) return res.status(404).json({ error: 'Not found' });
+    res.setHeader('Cache-Control', 'no-store');
+    return res.json({ tenant, email, password });
+  });
+
   app.post('/api/auth/login', createLoginLimiter(), asyncRoute(async (req, res) => {
     const tenantSlug = text(req.body?.tenant, 'tenant', 3, 63).toLowerCase();
     const email = text(req.body?.email, 'email', 5, 255).toLowerCase();
