@@ -224,6 +224,27 @@ function createApp({ pool, config }) {
     res.json({ content, receipt });
   }));
 
+  app.get('/api/runtime-ai/recommendations', userAuth, asyncRoute(async (req, res) => {
+    const result = await pool.query(
+      `SELECT id, model, prompt, created_at FROM security_ai_provider_receipts
+       WHERE tenant_id = $1 AND user_id = $2 ORDER BY created_at DESC, id DESC LIMIT 50`,
+      [req.user.tenant_id, req.user.id],
+    );
+    res.json({ recommendations: result.rows });
+  }));
+
+  app.get('/api/runtime-ai/recommendations/:id', userAuth, asyncRoute(async (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isSafeInteger(id) || id < 1) throw new DomainError(422, 'INVALID_INPUT', 'id must be a positive integer');
+    const result = await pool.query(
+      `SELECT id, model, prompt, content, created_at FROM security_ai_provider_receipts
+       WHERE id = $1 AND tenant_id = $2 AND user_id = $3`,
+      [id, req.user.tenant_id, req.user.id],
+    );
+    if (!result.rows.length) throw new DomainError(404, 'NOT_FOUND', 'Recommendation not found');
+    res.json(result.rows[0]);
+  }));
+
   app.post('/api/access/decisions', readerAuth, asyncRoute(async (req, res) => {
     const result = await processAccessAttempt(pool, req.reader, { ...req.body, externalEventId: req.headers['idempotency-key'] || req.body?.externalEventId });
     res.status(result.idempotent ? 200 : 201).json({ ...publicAttempt(result.attempt), idempotent: result.idempotent });

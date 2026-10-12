@@ -48,13 +48,13 @@ export default function Login() {
         type="button"
         onClick={fillDemoCredentials}
         disabled={demoLoading || loading}
-        aria-label="Auto Fill Demo Credentials"
+        aria-label="Fill demo credentials"
         style={{ width: '100%', marginBottom: '12px', padding: '10px 14px', borderRadius: '8px', border: '1px solid currentColor', background: 'transparent', cursor: 'pointer' }}
       >
-        {demoLoading ? 'Loading Demo Credentials…' : 'Auto Fill Demo Credentials'}
+        {demoLoading ? 'Loading Demo Credentials…' : 'Fill Demo Credentials'}
       </button>
       <button type="submit" className="btn btn-primary btn-full" disabled={loading}>{loading ? 'Signing in…' : 'Sign In'}</button>
     </form>
-    <p className="login-help">Administrators are provisioned explicitly with <code>npm run bootstrap:admin</code>. No demo credentials are installed.</p>
+    <p className="login-help">Demo credentials are available only when configured for this environment. Filling them does not sign in.</p>
   </div></div>;
 }

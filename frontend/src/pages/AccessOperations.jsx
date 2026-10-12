@@ -1,10 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../api';
+import RecordDialog from '../components/RecordDialog';
 
 const initialRule = { propertyId: '', name: '', doorPattern: '*', action: 'DENY', priority: 50, days: [0,1,2,3,4,5,6], startTime: '00:00', endTime: '00:00', enabled: true };
 const initialCredential = { propertyId: '', holderName: '', badgeNumber: '', credentialType: 'CARD', accessLevel: 'Standard', expiresOn: '' };
 
 function dateTime(value) { return value ? new Date(value).toLocaleString() : '—'; }
+function rowsFrom(response, key) {
+  const rows = response?.[key] ?? response?.data;
+  if (!Array.isArray(rows)) throw new Error(`The ${key} response did not contain a record list.`);
+  return rows;
+}
 
 export default function AccessOperations({ user }) {
   const [properties, setProperties] = useState([]);
@@ -20,6 +26,9 @@ export default function AccessOperations({ user }) {
   const [credential, setCredential] = useState(initialCredential);
   const [reader, setReader] = useState({ propertyId: '', name: '' });
   const [readerKey, setReaderKey] = useState(null);
+  const [selectedRule, setSelectedRule] = useState(null);
+  const [dialogBusy, setDialogBusy] = useState(false);
+  const [dialogError, setDialogError] = useState('');
   const isAdmin = user?.role === 'ADMIN';
 
   const load = useCallback(async () => {
@@ -30,8 +39,12 @@ export default function AccessOperations({ user }) {
         isAdmin ? api('/readers') : Promise.resolve({ readers: [] }),
         user?.role === 'ADMIN' || user?.role === 'AUDITOR' ? api('/audit/verify') : Promise.resolve(null),
       ]);
-      setProperties(propertyData.properties); setRules(ruleData.rules); setCredentials(credentialData.credentials); setAttempts(attemptData.attempts);
-      if (readerData?.readers) setReaders(readerData.readers);
+      const nextProperties = rowsFrom(propertyData, 'properties');
+      const nextRules = rowsFrom(ruleData, 'rules');
+      const nextCredentials = rowsFrom(credentialData, 'credentials');
+      const nextAttempts = rowsFrom(attemptData, 'attempts');
+      const nextReaders = rowsFrom(readerData, 'readers');
+      setProperties(nextProperties); setRules(nextRules); setCredentials(nextCredentials); setAttempts(nextAttempts); setReaders(nextReaders);
       if (auditData?.valid !== undefined) setAudit(auditData);
     } catch (failure) { setError(failure.message); }
   }, [isAdmin, user?.role]);
@@ -68,6 +81,24 @@ export default function AccessOperations({ user }) {
       await load();
     } catch (failure) { setError(failure.message); }
   }
+  async function saveRule(values) {
+    if (!isAdmin) return;
+    setDialogBusy(true); setDialogError('');
+    try {
+      await api(`/rules/${values.id}`, { method: 'PATCH', body: JSON.stringify({ expectedVersion: values.version, name: values.name, doorPattern: values.door_pattern, action: values.action, priority: Number(values.priority), startTime: String(values.start_time).slice(0, 5), endTime: String(values.end_time).slice(0, 5), enabled: Boolean(values.enabled) }) });
+      setSelectedRule(null); setNotice('Access rule updated with an immutable version snapshot.'); await load();
+    } catch (failure) { setDialogError(failure.message); }
+    finally { setDialogBusy(false); }
+  }
+  async function deleteRule(values) {
+    if (!isAdmin) return;
+    setDialogBusy(true); setDialogError('');
+    try {
+      await api(`/rules/${values.id}`, { method: 'PATCH', body: JSON.stringify({ expectedVersion: values.version, enabled: false }) });
+      setSelectedRule(null); setNotice('Access rule deleted; it is disabled and retained in the version history.'); await load();
+    } catch (failure) { setDialogError(failure.message); }
+    finally { setDialogBusy(false); }
+  }
 
   return <div className="access-page">
     <section className="hero" id="overview"><div><p className="eyebrow">Physical access decisioning</p><h1>Authorization operations</h1><p>Every reader request is idempotent, evaluated against persisted rules, and written to an immutable tenant audit chain.</p></div><button className="btn btn-outline" onClick={load}>Refresh</button></section>
@@ -83,8 +114,32 @@ export default function AccessOperations({ user }) {
       <form className="panel" onSubmit={createReader}><h2>4. Reader</h2><label>Property<select value={reader.propertyId} onChange={(e) => setReader({ ...reader, propertyId: e.target.value })} required><option value="">Select</option>{properties.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label>Reader name<input value={reader.name} onChange={(e) => setReader({ ...reader, name: e.target.value })} required /></label><button className="btn btn-primary">Issue reader key</button></form>
     </section>}
 
-    <section className="panel table-panel" id="rules"><h2>Published rules</h2><div className="table-wrap"><table><thead><tr><th>Rule</th><th>Door</th><th>Action</th><th>Priority</th><th>Schedule UTC</th><th>Version</th><th>State</th></tr></thead><tbody>{rules.map((item) => <tr key={item.id}><td>{item.name}</td><td>{item.door_pattern}</td><td><span className={`pill ${item.action === 'ALLOW' ? 'allow' : 'deny'}`}>{item.action}</span></td><td>{item.priority}</td><td>{String(item.start_time).slice(0,5)}–{String(item.end_time).slice(0,5)}</td><td>{item.version}</td><td>{item.enabled ? 'Enabled' : 'Disabled'}</td></tr>)}</tbody></table></div>{!rules.length && <p className="empty">No rules exist. Default decision is deny.</p>}</section>
+    <section className="panel table-panel" id="rules"><h2>Published rules</h2><div className="table-wrap"><table><thead><tr><th>Rule</th><th>Door</th><th>Action</th><th>Priority</th><th>Schedule UTC</th><th>Version</th><th>State</th></tr></thead><tbody>{rules.map((item) => <tr key={item.id} tabIndex={0} role="button" aria-label={`Open access rule ${item.name}`} style={{ cursor: 'pointer' }} onClick={() => { setDialogError(''); setSelectedRule(item); }} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setDialogError(''); setSelectedRule(item); } }}><td>{item.name}</td><td>{item.door_pattern}</td><td><span className={`pill ${item.action === 'ALLOW' ? 'allow' : 'deny'}`}>{item.action}</span></td><td>{item.priority}</td><td>{String(item.start_time).slice(0,5)}–{String(item.end_time).slice(0,5)}</td><td>{item.version}</td><td>{item.enabled ? 'Enabled' : 'Disabled'}</td></tr>)}</tbody></table></div>{!rules.length && <p className="empty">No rules exist. Default decision is deny.</p>}</section>
     <section className="panel table-panel" id="decisions"><h2>Immutable access decisions</h2><div className="table-wrap"><table><thead><tr><th>Occurred</th><th>Badge suffix</th><th>Door</th><th>Decision</th><th>Reason</th><th>Event ID</th></tr></thead><tbody>{attempts.map((item) => <tr key={item.id}><td>{dateTime(item.occurred_at)}</td><td>••••{item.badge_suffix}</td><td>{item.door_name}</td><td><span className={`pill ${item.decision.toLowerCase()}`}>{item.decision}</span></td><td>{item.reason_code}</td><td><code>{item.external_event_id}</code></td></tr>)}</tbody></table></div>{!attempts.length && <p className="empty">No reader attempts recorded yet.</p>}</section>
     {isAdmin && <section className="panel table-panel" id="readers"><h2>Provisioned readers</h2><div className="table-wrap"><table><thead><tr><th>Name</th><th>ID</th><th>Status</th><th>Last seen</th></tr></thead><tbody>{readers.map((item) => <tr key={item.id}><td>{item.name}</td><td><code>{item.id}</code></td><td>{item.status}</td><td>{dateTime(item.last_seen_at)}</td></tr>)}</tbody></table></div></section>}
+    {selectedRule && <RecordDialog
+      title={selectedRule.name}
+      item={selectedRule}
+      busy={dialogBusy}
+      error={dialogError}
+      onClose={() => { setSelectedRule(null); setDialogError(''); }}
+      onSave={isAdmin ? saveRule : undefined}
+      onDelete={isAdmin ? deleteRule : undefined}
+      deleteLabel="Delete"
+      deleteWarning="The rule is disabled and retained in the append-only version history; no audit evidence is destroyed."
+      permissionsNote={isAdmin ? '' : 'Your role can view this rule; only administrators publish changes.'}
+      fields={[
+        { key: 'name' },
+        { key: 'door_pattern', label: 'Door pattern' },
+        { key: 'action', type: 'select', options: ['ALLOW', 'DENY', 'REQUIRE_MFA'] },
+        { key: 'priority', type: 'number', min: 1, max: 100 },
+        { key: 'start_time', label: 'Start (UTC)' },
+        { key: 'end_time', label: 'End (UTC)' },
+        { key: 'enabled', type: 'boolean' },
+        { key: 'version', editable: false },
+        { key: 'created_at', label: 'Created', editable: false },
+        { key: 'updated_at', label: 'Updated', editable: false }
+      ]}
+    />}
   </div>;
 }

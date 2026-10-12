@@ -1,3 +1,4 @@
+import NativeAIReadiness from './pages/NativeAIReadiness';
 import React, { useEffect, useState } from 'react';
 import SectionSidebar from './SectionSidebar';
 import { Navigate, Route, Routes, useNavigate } from 'react-router-dom';
@@ -18,7 +19,7 @@ function OperationsLayout() {
   return (
     <div className="operations-shell codex-section-shell">
       <SectionSidebar title="Kastle Access Control" items={[
-        { href: '#overview', label: 'Overview' },
+        { href: '#overview', label: 'Overview' }, { href: '#ai-readiness', label: 'AI workspace' },
         ...(user?.role === 'ADMIN' ? [{ href: '#administration', label: 'Administration' }] : []),
         { href: '#rules', label: 'Published Rules' },
         { href: '#decisions', label: 'Access Decisions' },
@@ -30,7 +31,7 @@ function OperationsLayout() {
         <div><strong>Kastle Access Control</strong><small>Governed authorization and audit</small></div>
         <div className="operator-identity"><span>{user ? `${user.fullName} · ${user.role}` : 'Loading session…'}</span><button onClick={() => { logout(); navigate('/login'); }}>Sign out</button></div>
       </header>
-      <main className="operations-content"><AccessOperations user={user} /></main>
+      <main className="operations-content"><AccessOperations user={user} />{user && <NativeAIReadiness/>}</main>
       </div>
     </div>
   );
